@@ -1,0 +1,416 @@
+// BiasX Database Schema
+// AI-Powered Behavioral Trading Terminal
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  passwordHash   String
+  avatarUrl      String?
+  isDemo         Boolean  @default(false)
+  onboardingStep Int      @default(0)
+  onboardingDone Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  accounts          Account[]
+  brokerConnections BrokerConnection[]
+  trades            Trade[]
+  orders            Order[]
+  positions         Position[]
+  tradingRules      TradingRule[]
+  ruleViolations    RuleViolation[]
+  behaviorEvents    BehaviorEvent[]
+  behaviorScores    BehaviorScore[]
+  behaviorPatterns  BehaviorPattern[]
+  protocols         Protocol[]
+  dailyCheckins     DailyCheckin[]
+  aiAnalyses        AiAnalysis[]
+  tradeAnalyses     TradeAnalysis[]
+  auditLogs         AuditLog[]
+}
+
+// ─── ACCOUNTS ─────────────────────────────────────────────────────────────────
+
+model Account {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   @default("demo") // demo, live
+  broker    String   @default("demo") // demo, csv, alpaca, etc.
+  balance   Float    @default(10000)
+  equity    Float    @default(10000)
+  currency  String   @default("USD")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brokerConnection BrokerConnection?
+  trades           Trade[]
+  positions        Position[]
+
+  @@index([userId])
+}
+
+// ─── BROKER CONNECTIONS ───────────────────────────────────────────────────────
+
+model BrokerConnection {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId     String   @unique
+  account       Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  broker        String
+  status        String   @default("connected") // connected, disconnected, error
+  apiKeyEnc     String?  // encrypted API key
+  apiSecretEnc  String?  // encrypted API secret
+  accessToken   String?  // OAuth token
+  refreshToken  String?  // OAuth refresh token
+  tokenExpiry   DateTime?
+  lastSyncAt    DateTime?
+  syncStatus    String?  // syncing, synced, error
+  totalTrades   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─── TRADES ───────────────────────────────────────────────────────────────────
+
+model Trade {
+  id              String    @id @default(cuid())
+  accountId       String
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol          String
+  assetClass      String    @default("crypto") // crypto, stocks, forex, futures, options
+  direction       String    // long, short
+  entryPrice      Float
+  exitPrice       Float?
+  quantity         Float
+  positionSize    Float     // in USD
+  stopLoss        Float?
+  takeProfit      Float?
+  entryTime       DateTime
+  exitTime        DateTime?
+  pnl             Float?
+  pnlPercentage  Float?
+  fees            Float     @default(0)
+  duration        Int?      // seconds
+  strategy        String?
+  timeframe       String?
+  riskPercentage Float?
+  riskReward      Float?
+  orderType       String    @default("market") // market, limit, stop
+  status          String    @default("open") // open, closed, cancelled
+  notes           String?
+  tags            String?   // JSON array as string
+  isDemo          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  orders          Order[]
+  ruleViolations  RuleViolation[]
+  behaviorEvents  BehaviorEvent[]
+  aiAnalyses      AiAnalysis[]
+  tradeAnalyses   TradeAnalysis[]
+
+  @@index([userId, entryTime])
+  @@index([userId, symbol])
+  @@index([accountId])
+  @@index([status])
+}
+
+// ─── ORDERS ───────────────────────────────────────────────────────────────────
+
+model Order {
+  id        String   @id @default(cuid())
+  tradeId   String?
+  trade     Trade?   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol    String
+  orderType String   // market, limit, stop, stop_limit
+  side      String   // buy, sell
+  quantity  Float
+  price     Float?
+  status    String   @default("pending") // pending, filled, cancelled, rejected
+  filledAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([tradeId])
+}
+
+// ─── POSITIONS ────────────────────────────────────────────────────────────────
+
+model Position {
+  id            String  @id @default(cuid())
+  accountId     String
+  account       Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symbol        String
+  direction     String  // long, short
+  quantity      Float
+  averageEntry  Float
+  currentPrice  Float
+  unrealizedPnl Float   @default(0)
+  stopLoss      Float?
+  takeProfit    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+}
+
+// ─── TRADING RULES ────────────────────────────────────────────────────────────
+
+model TradingRule {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    String   // entry, risk, behavior, exit, timing
+  name        String
+  description String?
+  ruleType    String   // max_risk, max_trades_per_day, allowed_hours, min_risk_reward, max_position_size, max_daily_loss, max_consecutive_losses, custom_boolean
+  value       String?  // JSON-encoded value
+  unit        String?  // percentage, count, time, ratio, usd
+  severity    String   @default("warning") // info, warning, critical
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  violations  RuleViolation[]
+
+  @@index([userId])
+}
+
+// ─── RULE VIOLATIONS ──────────────────────────────────────────────────────────
+
+model RuleViolation {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeId      String?
+  trade        Trade?   @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  ruleId       String
+  rule         TradingRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  violationType String  // pre_trade, during_trade, post_trade
+  actualValue  String?
+  ruleValue    String?
+  description  String?
+  acknowledged Boolean  @default(false) // user clicked "proceed anyway"
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tradeId])
+  @@index([ruleId])
+}
+
+// ─── BEHAVIOR EVENTS ──────────────────────────────────────────────────────────
+
+model BehaviorEvent {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeId      String?
+  trade        Trade?   @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  eventType    String   // fomo, revenge_trading, overtrading, risk_expansion, stop_loss_violation, early_exit, strategy_deviation
+  confidence   Float    // 0-1
+  severity     String   // low, medium, high, critical
+  signals      String   // JSON array of signal descriptions
+  evidence     String   // JSON of supporting data
+  consequences String?  // JSON of historical consequence data
+  detectedAt   DateTime @default(now())
+
+  @@index([userId, detectedAt])
+  @@index([eventType])
+}
+
+// ─── BEHAVIOR SCORES ──────────────────────────────────────────────────────────
+
+model BehaviorScore {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallScore       Float    // 0-100
+  ruleAdherence      Float    // 0-100
+  riskDiscipline     Float    // 0-100
+  fomoControl        Float    // 0-100
+  revengeControl     Float    // 0-100
+  overtradingControl Float    // 0-100
+  positionSizing     Float    // 0-100
+  consistency        Float    // 0-100
+  stopLossDiscipline Float    // 0-100
+  period             String   // daily, weekly, monthly, all_time
+  periodStart        DateTime
+  periodEnd          DateTime
+  tradeCount         Int
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([period])
+}
+
+// ─── BEHAVIOR PATTERNS ────────────────────────────────────────────────────────
+
+model BehaviorPattern {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patternType  String   // fomo_after_move, revenge_after_loss, overtrading_session, risk_increase_after_losses, etc.
+  description  String
+  frequency    Int      // how many times detected
+  avgImpact    Float    // average P&L impact
+  confidence   Float    // 0-1
+  triggers     String   // JSON array of trigger conditions
+  consequences String   // JSON of consequence data
+  isActive     Boolean  @default(true)
+  firstSeen    DateTime
+  lastSeen     DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([patternType])
+}
+
+// ─── PROTOCOLS ────────────────────────────────────────────────────────────────
+
+model Protocol {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggerType  String   // fomo, revenge_trading, overtrading, risk_expansion, tilt
+  name         String
+  description  String?
+  steps        String   // JSON array of protocol steps
+  cooldownSecs Int      @default(60) // minimum pause duration
+  isActive     Boolean  @default(true)
+  timesUsed    Int      @default(0)
+  timesHelped  Int      @default(0) // times where user cancelled after protocol
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─── DAILY CHECK-INS ──────────────────────────────────────────────────────────
+
+model DailyCheckin {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mood            String   // calm, focused, excited, frustrated, uncertain
+  followingPlan   Boolean
+  plannedTrades   Int?
+  notes           String?
+  actualTrades    Int?     // filled in at end of day
+  actualPnl       Float?   // filled in at end of day
+  ruleViolations  Int?     // filled in at end of day
+  sessionDate     DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([userId, sessionDate])
+}
+
+// ─── AI ANALYSES ──────────────────────────────────────────────────────────────
+
+model AiAnalysis {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeId         String?
+  trade           Trade?   @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  analysisType    String   // pre_trade, post_trade, coach_query, behavioral_insight
+  query           String?  // user's question (for coach)
+  response        String   // AI-generated response
+  ruleCompliance  String?  // JSON of rule check results
+  behavioralRisk  String?  // low, medium, high
+  signals         String?  // JSON array of behavioral signals
+  similarTrades   String?  // JSON of similar trade data
+  recommendation  String?  // wait, modify, proceed
+  userDecision    String?  // cancelled, modified, proceeded
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tradeId])
+}
+
+// ─── TRADE ANALYSES ───────────────────────────────────────────────────────────
+
+model TradeAnalysis {
+  id                     String   @id @default(cuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeId                String?
+  trade                  Trade?   @relation(fields: [tradeId], references: [id], onDelete: SetNull)
+  
+  // Proposed trade parameters
+  symbol                 String
+  direction              String
+  entryPrice             Float
+  stopLoss               Float?
+  takeProfit             Float?
+  positionSize           Float
+  riskPercentage        Float?
+  riskReward             Float?
+  
+  // Analysis results
+  rulesChecked           Int
+  rulesPassed            Int
+  rulesViolated          String?  // JSON array of violated rule IDs
+  behavioralRisk         String   // low, medium, high
+  behavioralSignals      String?  // JSON array
+  similarTradeCount      Int      @default(0)
+  similarTradeWinRate    Float?
+  similarTradeAvgPnl     Float?
+  historicalConsequence  String?  // JSON
+  recommendation         String   // cancel, modify, proceed
+  aiExplanation          String?  // natural language explanation
+  
+  // User decision
+  userDecision           String?  // cancelled, modified, proceeded
+  warningAcknowledged    Boolean  @default(false)
+  
+  // Post-trade comparison
+  actualPnl              Float?
+  predictionAccurate     Boolean?
+  
+  createdAt              DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ─── AUDIT LOGS ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // login, signup, connect_broker, disconnect_broker, import_trades, place_trade, acknowledge_warning, etc.
+  details   String?  // JSON of action details
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
+}

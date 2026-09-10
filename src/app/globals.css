@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Black & Dusky Obsidian Theme */
+  --background: #080808;
+  --foreground: #ededed;
+
+  --sidebar: #0a0a0a;
+  --card: #111111;
+  --card-inner: #151515;
+  --card-foreground: #ededed;
+
+  --popover: #121212;
+  --popover-foreground: #ededed;
+
+  --primary: #222222;
+  --primary-dark: #1a1a1a;
+  --primary-foreground: #ffffff;
+
+  --secondary: #141414;
+  --secondary-foreground: #ededed;
+
+  --muted: #161616;
+  --muted-foreground: #8a8a8e;
+
+  --accent: #1e1e1e;
+  --accent-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #202020;
+  --input: #1c1c1c;
+  --ring: #404040;
+
+  --radius: 0.75rem;
+
+  /* Semantic trading colors */
+  --profit: #10b981;
+  --loss: #ef4444;
+  --warning: #f59e0b;
+  --bullish: #10b981;
+  --bearish: #ef4444;
+  --info: #8a8a8e;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+/* Typography Enhancements */
+.font-mono {
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dusky Charcoal Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #242424;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* P&L Colors */
+.text-bullish {
+  color: #10b981;
+}
+
+.text-bearish {
+  color: #ef4444;
+}
+
+.text-warning {
+  color: #f59e0b;
+}
+
+.bg-bullish {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
+.bg-bearish {
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* Black & Dusky Glass Card Effect */
+.card-glass {
+  background: linear-gradient(180deg, #141414 0%, #0d0d0d 100%);
+  border: 1px solid #222222;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
 }
