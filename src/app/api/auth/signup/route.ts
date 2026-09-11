@@ -94,8 +94,10 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json({ success: true, user: { id: user.id, email: user.email, name: user.name } })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Signup error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: error?.message || 'Failed to create account' 
+    }, { status: 500 })
   }
 }
