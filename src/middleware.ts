@@ -1,34 +1,22 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-const publicRoutes = ['/login', '/signup', '/forgot-password']
+export default function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export default auth((req) => {
-  const { nextUrl } = req
-  const isLoggedIn = !!req.auth
-  
-  const isApiRoute = nextUrl.pathname.startsWith('/api')
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
-  
-  if (isApiRoute) {
-    return NextResponse.next()
+  // Root or auth pages directly redirect to dashboard
+  if (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password'
+  ) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
-  
-  if (isPublicRoute) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL('/', nextUrl))
-    }
-    return NextResponse.next()
-  }
-  
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', nextUrl))
-  }
-  
-  return NextResponse.next()
-})
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
-}
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
