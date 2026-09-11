@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { generateDemoAccount, generateDemoTrades, generateDemoRules } from '@/lib/services/demo-data-generator'
+import { 
+  generateDemoAccount, 
+  generateDemoTrades, 
+  generateDemoRules,
+  generateDemoBehaviorEvents,
+  generateDemoRuleViolations
+} from '@/lib/services/demo-data-generator'
 
 export async function POST(req: Request) {
   try {
@@ -57,7 +63,7 @@ export async function POST(req: Request) {
     // Generate and insert demo trades
     const demoTrades = generateDemoTrades()
     await prisma.trade.createMany({
-      data: demoTrades.map(trade => ({
+      data: demoTrades.map(({ behaviorType, ...trade }) => ({
         ...trade,
         accountId: account.id,
         userId: user.id,
@@ -72,6 +78,20 @@ export async function POST(req: Request) {
         userId: user.id,
       }))
     })
+
+    // Fetch created records for relations
+    const createdTrades = await prisma.trade.findMany({ where: { userId: user.id } })
+    const createdRules = await prisma.tradingRule.findMany({ where: { userId: user.id } })
+
+    const demoEvents = generateDemoBehaviorEvents(createdTrades, user.id)
+    if (demoEvents.length > 0) {
+      await prisma.behaviorEvent.createMany({ data: demoEvents })
+    }
+
+    const demoViolations = generateDemoRuleViolations(createdTrades, createdRules, user.id)
+    if (demoViolations.length > 0) {
+      await prisma.ruleViolation.createMany({ data: demoViolations })
+    }
     
     return NextResponse.json({ success: true, user: { id: user.id, email: user.email, name: user.name } })
   } catch (error) {
