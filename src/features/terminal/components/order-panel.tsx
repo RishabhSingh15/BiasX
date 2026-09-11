@@ -74,23 +74,6 @@ export function OrderPanel({
     tpError,
   } = calc;
 
-  // Handler: Set Take Profit based on R:R multiplier relative to current Stop Loss
-  const handleSetRrTarget = (targetRr: number) => {
-    const numEntry = parseFloat(entryPrice);
-    const numSl = parseFloat(stopLoss);
-    if (!isNaN(numEntry) && !isNaN(numSl) && isSlValid && numEntry > 0 && numSl > 0) {
-      const slDist = Math.abs(numEntry - numSl);
-      const targetProfitDist = slDist * targetRr;
-      const targetTp = direction === 'BUY' 
-        ? numEntry + targetProfitDist 
-        : numEntry - targetProfitDist;
-      if (targetTp > 0) {
-        const dec = entryPrice.includes('.') ? entryPrice.split('.')[1].length : 2;
-        setTakeProfit(targetTp.toFixed(dec));
-        onReset();
-      }
-    }
-  };
 
   // Handler: Auto-calculate lots to risk exactly 1% account balance
   const handleAutoRiskLots = () => {
@@ -122,16 +105,6 @@ export function OrderPanel({
     }
   };
 
-  // Handler: Set Stop Loss based on percentage distance from Entry Price
-  const handleSlPreset = (percent: number) => {
-    const numEntry = parseFloat(entryPrice);
-    if (!isNaN(numEntry) && numEntry > 0) {
-      const mult = direction === 'BUY' ? (1 - percent / 100) : (1 + percent / 100);
-      const dec = entryPrice.includes('.') ? entryPrice.split('.')[1].length : 2;
-      setStopLoss((numEntry * mult).toFixed(dec));
-      onReset();
-    }
-  };
 
   // Generic sanitizer for decimal inputs to completely eliminate leading zeros
   const handleNumericInput = (raw: string, setter: (val: string) => void) => {
@@ -320,20 +293,6 @@ export function OrderPanel({
                 value={stopLoss}
                 onChange={(e) => handleNumericInput(e.target.value, setStopLoss)}
               />
-              {/* Quick SL presets */}
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="text-[11px] font-heading font-semibold text-[#718096]">Quick SL:</span>
-                {[0.5, 1.0, 1.5, 2.0].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => handleSlPreset(pct)}
-                    className="px-2 py-0.5 rounded-[12px] bg-[#E0E5EC] neu-raised-sm border border-[#A0AEC0]/20 text-[11px] font-mono font-bold text-[#4A5568] hover:text-[#FF6B6B] cursor-pointer transition-all"
-                  >
-                    -{pct}%
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* 5. Take Profit */}
@@ -363,21 +322,6 @@ export function OrderPanel({
                 value={takeProfit}
                 onChange={(e) => handleNumericInput(e.target.value, setTakeProfit)}
               />
-              {/* Quick R:R presets */}
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="text-[11px] font-heading font-semibold text-[#718096]">Quick Target:</span>
-                {[1.5, 2.0, 3.0].map((ratio) => (
-                  <button
-                    key={ratio}
-                    type="button"
-                    onClick={() => handleSetRrTarget(ratio)}
-                    disabled={dollarRisk <= 0}
-                    className="px-2 py-0.5 rounded-[12px] bg-[#E0E5EC] neu-raised-sm border border-[#A0AEC0]/20 text-[11px] font-mono font-bold text-[#4A5568] hover:text-[#38B2AC] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-all"
-                  >
-                    1:{ratio}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* 6. Properly Calculated BehaviorGuard Risk Card */}
