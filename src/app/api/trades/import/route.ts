@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-import { auth } from '@/lib/auth';
+import { auth, getEffectiveUserId, ensureUserHasAccount } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
 import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
@@ -9,12 +9,7 @@ import { parseMT5Report, getContractMultiplier, calculateDollarRisk, calculateRi
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    let userId = session?.user?.id;
-    if (!userId) {
-      const demoUser = await prisma.user.findFirst();
-      userId = demoUser?.id;
-    }
+    const userId = await getEffectiveUserId();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -114,12 +109,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const session = await auth();
-    let userId = session?.user?.id;
-    if (!userId) {
-      const demoUser = await prisma.user.findFirst();
-      userId = demoUser?.id;
-    }
+    const userId = await getEffectiveUserId();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,17 +119,16 @@ export async function PUT(request: Request) {
     const { accountId, trades, fileContent, mapping } = body;
     
     let targetAccountId = accountId;
-    if (!targetAccountId) {
-      const userAccount = await prisma.account.findFirst({ where: { userId } });
-      targetAccountId = userAccount?.id;
+    let userAccount = null;
+    if (targetAccountId) {
+      userAccount = await prisma.account.findUnique({ where: { id: targetAccountId } });
     }
-
-    if (!targetAccountId) {
-      return NextResponse.json({ error: 'No active account found to import trades into' }, { status: 400 });
+    if (!userAccount) {
+      userAccount = await ensureUserHasAccount(userId);
+      targetAccountId = userAccount.id;
     }
 
     let tradesData: any[] = [];
-    const userAccount = await prisma.account.findFirst({ where: { userId } });
     const accountBal = (userAccount as any)?.startingBalance || userAccount?.balance || 2000;
 
     // Case 1: Pre-parsed MT5 Trades

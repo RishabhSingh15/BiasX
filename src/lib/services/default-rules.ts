@@ -3,6 +3,12 @@ import { RULE_PRESETS } from '@/features/rules/constants/rule-presets';
 
 export async function ensureUserHasDefaultRules(userId: string) {
   try {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!userExists) return;
+
     const count = await prisma.tradingRule.count({ where: { userId } });
     if (count > 0) return;
 

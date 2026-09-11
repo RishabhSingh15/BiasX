@@ -1,24 +1,32 @@
 import { NextResponse } from 'next/server';
-// @ts-ignore - Assuming auth setup
-import { auth } from '@/lib/auth';
-// @ts-ignore - Assuming prisma setup
+// @ts-ignore
+import { auth, getEffectiveUserId, ensureUserHasAccount } from '@/lib/auth';
+// @ts-ignore
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getEffectiveUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const accounts = await prisma.account.findMany({
-      where: { userId: session.user.id },
+    let accounts = await prisma.account.findMany({
+      where: { userId },
       include: {
         _count: {
           select: { trades: true }
         }
       }
     });
+
+    if (accounts.length === 0) {
+      const defaultAcc = await ensureUserHasAccount(userId);
+      accounts = [{
+        ...defaultAcc,
+        _count: { trades: 0 }
+      }] as any;
+    }
 
     return NextResponse.json(accounts);
   } catch (error) {
@@ -29,8 +37,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await getEffectiveUserId();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -39,7 +47,7 @@ export async function POST(request: Request) {
 
     const account = await prisma.account.create({
       data: {
-        userId: session.user.id,
+        userId,
         name: name || 'New Account',
         type: type || 'demo',
         broker: broker || 'demo',

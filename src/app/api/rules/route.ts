@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-import { auth } from '@/lib/auth';
+import { auth, getEffectiveUserId } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
 import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
@@ -9,10 +9,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 async function getUserId() {
-  const session = await auth();
-  if (session?.user?.id) return session.user.id;
-  const demoUser = await prisma.user.findFirst();
-  return demoUser?.id || null;
+  return await getEffectiveUserId();
 }
 
 export async function GET(request: Request) {

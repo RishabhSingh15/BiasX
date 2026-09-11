@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-import { auth } from '@/lib/auth';
+import { auth, getEffectiveUserId } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
 
@@ -8,12 +8,7 @@ import { auditHistoricalTrades } from '@/lib/engines/audit-engine';
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    let userId = session?.user?.id;
-    if (!userId) {
-      const demoUser = await prisma.user.findFirst();
-      userId = demoUser?.id;
-    }
+    const userId = await getEffectiveUserId();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
