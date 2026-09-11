@@ -18,14 +18,14 @@ import {
   Wallet 
 } from 'lucide-react';
 import { DashboardStatsWithBehavior } from '../types';
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 export function BehaviorView() {
   const [stats, setStats] = useState<DashboardStatsWithBehavior | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats', { cache: 'no-store' })
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => setStats(d))
       .catch(e => console.warn('Behavior fetch error:', e))
       .finally(() => setLoading(false));

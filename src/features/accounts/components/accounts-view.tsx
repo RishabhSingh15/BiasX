@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useNotification } from '@/components/ui/notification';
+import { fetchDashboardStats, invalidateDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 export function AccountsView() {
   const { confirm, success, error } = useNotification();
@@ -42,8 +43,7 @@ export function AccountsView() {
   // Fetch live account data
   const [accountData, setAccountData] = useState<any>(null);
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => setAccountData(d))
       .catch(() => {});
   }, [importMode]);
@@ -62,6 +62,7 @@ export function AccountsView() {
     try {
       const res = await fetch('/api/trades', { method: 'DELETE' });
       if (res.ok) {
+        invalidateDashboardStats();
         success('Trade History Reset', 'All previous trade history has been cleared. Account reset to $2,000 baseline.');
         setTimeout(() => {
           window.location.reload();
@@ -146,6 +147,7 @@ export function AccountsView() {
         count: data.count || parsedData.tradeCount || 0,
         totalPnl: data.totalPnl ?? 0,
       });
+      invalidateDashboardStats();
       setImportMode('success');
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to import trades');

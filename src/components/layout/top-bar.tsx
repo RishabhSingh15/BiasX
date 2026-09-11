@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 export function TopBar() {
   const pathname = usePathname();
   const [accountInfo, setAccountInfo] = useState<{ name: string; balance: number } | null>(null);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => {
         if (d?.account) {
           setAccountInfo({

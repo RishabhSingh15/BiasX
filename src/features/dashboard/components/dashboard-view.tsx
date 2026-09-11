@@ -7,13 +7,14 @@ import { EquityCurveCard } from './equity-curve-card';
 import { RiskLimitsPanel } from './risk-limits-panel';
 import { PnlCalendarCard } from './pnl-calendar-card';
 
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
+
 export function DashboardView() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [rawCalendarDays, setRawCalendarDays] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats', { cache: 'no-store' })
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(res => {
         if (res.account && res.stats) {
           const calDays = res.calendarDays || [];

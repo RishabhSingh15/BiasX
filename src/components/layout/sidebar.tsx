@@ -18,6 +18,7 @@ import {
 import { cn, formatCurrency } from '@/lib/utils';
 import { useAppStore } from '@/lib/stores/app-store';
 import { BiasXLogo } from '@/components/ui/biasx-logo';
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 // Core Navigation
 const navItems = [
@@ -36,8 +37,7 @@ export function Sidebar() {
   const [accountInfo, setAccountInfo] = useState<{ name: string; balance: number } | null>(null);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => {
         if (d?.account) {
           setAccountInfo({

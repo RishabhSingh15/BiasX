@@ -9,6 +9,9 @@ import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const serverStatsCache = new Map<string, { data: any; timestamp: number }>();
+const SERVER_CACHE_TTL_MS = 10000; // 10s per-user cache
+
 function formatDuration(seconds: number | null | undefined): string {
   if (!seconds || seconds <= 0) return '—';
   if (seconds < 60) return `${seconds}s`;
@@ -35,18 +38,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await ensureUserHasDefaultRules(userId);
+    const currentTime = Date.now();
+    const cached = serverStatsCache.get(userId);
+    if (cached && (currentTime - cached.timestamp < SERVER_CACHE_TTL_MS)) {
+      return NextResponse.json(cached.data, {
+        headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' }
+      });
+    }
 
-    const [account, dbTrades, behaviorEvents, ruleViolations, rules] = await Promise.all([
+    let [account, dbTrades, behaviorEvents, rules] = await Promise.all([
       prisma.account.findFirst({ where: { userId } }),
       prisma.trade.findMany({
         where: { userId },
         orderBy: { entryTime: 'asc' },
       }),
       prisma.behaviorEvent.findMany({ where: { userId } }),
-      prisma.ruleViolation.findMany({ where: { userId } }),
       prisma.tradingRule.findMany({ where: { userId, isActive: true } }),
     ]);
+
+    if (rules.length === 0) {
+      await ensureUserHasDefaultRules(userId);
+      rules = await prisma.tradingRule.findMany({ where: { userId, isActive: true } });
+    }
 
     const hasTrades = dbTrades.length > 0;
     const balance = account?.balance ?? 2000;
@@ -227,7 +240,7 @@ export async function GET(request: Request) {
         };
       });
 
-    return NextResponse.json({
+    const responsePayload = {
       account: {
         id: account?.id,
         name: account?.name || 'Live Account',
@@ -271,6 +284,12 @@ export async function GET(request: Request) {
       behaviorEvents: eventCounts,
       behaviorAudit,
       recentTrades: hasTrades ? recentTrades : [],
+    };
+
+    serverStatsCache.set(userId, { data: responsePayload, timestamp: Date.now() });
+
+    return NextResponse.json(responsePayload, {
+      headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' }
     });
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error);

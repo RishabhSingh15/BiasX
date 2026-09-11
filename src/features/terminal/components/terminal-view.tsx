@@ -11,6 +11,7 @@ import { SYMBOL_LIST } from '../constants/symbols';
 import { useOrderCalculations } from '../hooks/use-order-calculations';
 import { OrderPanel } from './order-panel';
 import { OrderAnalysisModal } from './order-analysis-modal';
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 // Dynamically import TradingView chart to avoid SSR issues
 const TradingViewChart = dynamic(
@@ -76,8 +77,7 @@ export function TerminalView() {
 
   // Synchronize with real account balance from API
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => {
         if (d?.account?.balance) {
           setAccountBalance(d.account.balance);

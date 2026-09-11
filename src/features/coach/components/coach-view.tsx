@@ -6,6 +6,7 @@ import { Message } from '../types';
 import { CoachSidebar, SUGGESTED_QUESTIONS } from './coach-sidebar';
 import { CoachChatArea } from './coach-chat-area';
 import { CoachInputBar } from './coach-input-bar';
+import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 export function CoachView() {
   const [tradeCount, setTradeCount] = useState<number | null>(null);
@@ -43,8 +44,7 @@ export function CoachView() {
   }, [isTyping]);
 
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json())
+    fetchDashboardStats()
       .then(d => {
         const count = d?.stats?.totalTrades ?? 0;
         setTradeCount(count);
