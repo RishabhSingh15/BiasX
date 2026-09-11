@@ -13,9 +13,9 @@ export interface SymbolConfig {
 }
 
 export const SUPPORTED_SYMBOLS: Record<string, SymbolConfig> = {
-  'XAU/USD': { name: 'Gold Spot USD', decimals: 2, category: 'Commodities', defaultPrice: 4429.82, tvTicker: 'OANDA:XAUUSD' },
-  'GOLD': { name: 'Gold Spot USD', decimals: 2, category: 'Commodities', defaultPrice: 4429.82, tvTicker: 'TVC:GOLD' },
-  'GC1!': { name: 'Gold Futures', decimals: 1, category: 'Commodities', defaultPrice: 4476.60, tvTicker: 'COMEX:GC1!' },
+  'XAU/USD': { name: 'Gold Spot USD', decimals: 2, category: 'Commodities', defaultPrice: 2850.50, tvTicker: 'OANDA:XAUUSD' },
+  'GOLD': { name: 'Gold Spot USD', decimals: 2, category: 'Commodities', defaultPrice: 2850.50, tvTicker: 'TVC:GOLD' },
+  'GC1!': { name: 'Gold Futures', decimals: 1, category: 'Commodities', defaultPrice: 2865.00, tvTicker: 'COMEX:GC1!' },
   'BTC/USDT': { name: 'Bitcoin', decimals: 2, category: 'Crypto', defaultPrice: 79854.60, tvTicker: 'BINANCE:BTCUSDT' },
   'ETH/USDT': { name: 'Ethereum', decimals: 2, category: 'Crypto', defaultPrice: 2497.00, tvTicker: 'BINANCE:ETHUSDT' },
   'SOL/USDT': { name: 'Solana', decimals: 2, category: 'Crypto', defaultPrice: 106.48, tvTicker: 'BINANCE:SOLUSDT' },
@@ -59,7 +59,7 @@ export interface TradingViewChartProps {
 
 /**
  * Clean TradingView Advanced Chart Embed:
- * Black & Dusky Obsidian palette with pure candles
+ * Tactile BehaviorGuard palette with pure candles, smooth loading spinner & reload resilience
  */
 function OriginalTradingViewEmbedComponent({
   symbol,
@@ -69,12 +69,17 @@ function OriginalTradingViewEmbedComponent({
   interval?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const tvTicker = getTradingViewSymbol(symbol);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    setIsLoading(true);
+    setHasError(false);
     container.innerHTML = '';
 
     const widgetContainer = document.createElement('div');
@@ -97,7 +102,7 @@ function OriginalTradingViewEmbedComponent({
       symbol: tvTicker,
       interval: interval,
       timezone: 'Etc/UTC',
-      theme: 'dark',
+      theme: 'light',
       style: '1',
       locale: 'en',
       enable_publishing: false,
@@ -106,25 +111,65 @@ function OriginalTradingViewEmbedComponent({
       hide_top_toolbar: false,
       hide_legend: false,
       save_image: false,
-      hide_side_toolbar: true,
-      withdateranges: false,
+      hide_side_toolbar: false,
+      withdateranges: true,
       details: false,
       hotlist: false,
-      backgroundColor: '#0a0a0a',
-      gridColor: 'rgba(255, 255, 255, 0.03)',
+      backgroundColor: '#E0E5EC',
+      gridColor: 'rgba(163, 177, 198, 0.25)',
       support_host: 'https://www.tradingview.com',
+      studies: [],
     });
+
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 4500);
+
+    script.onload = () => {
+      setTimeout(() => setIsLoading(false), 400);
+    };
+
+    script.onerror = () => {
+      setHasError(true);
+      setIsLoading(false);
+    };
 
     widgetContainer.appendChild(script);
     container.appendChild(widgetContainer);
 
     return () => {
+      clearTimeout(timer);
       container.innerHTML = '';
     };
-  }, [tvTicker, interval]);
+  }, [tvTicker, interval, reloadKey]);
 
   return (
-    <div className="w-full h-full min-h-[520px] flex-1 relative bg-[#0a0a0a]" ref={containerRef} />
+    <div className="w-full h-full min-h-[520px] flex-1 relative bg-[#E0E5EC]">
+      <div className="w-full h-full min-h-[520px]" ref={containerRef} />
+      
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 z-10 bg-[#E0E5EC]/85 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
+          <div className="w-9 h-9 rounded-full border-3 border-[#6C63FF] border-t-transparent animate-spin" />
+          <span className="text-sm font-semibold font-heading text-[#2D3748]">Loading Live Market Feed ({symbol})...</span>
+          <span className="text-xs text-[#4A5568] font-mono">Connecting to TradingView network</span>
+        </div>
+      )}
+
+      {/* Error / Timeout Recovery State */}
+      {hasError && (
+        <div className="absolute inset-0 z-20 bg-[#E0E5EC] flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-sm font-bold text-[#FF6B6B] font-heading">Unable to connect to chart stream</p>
+          <p className="text-xs text-[#4A5568] max-w-sm font-body">TradingView CDN connection took too long. Click below to reconnect.</p>
+          <button
+            onClick={() => setReloadKey(k => k + 1)}
+            className="px-4 py-2 rounded-[18px] bg-[#E0E5EC] neu-raised text-xs font-heading font-bold text-[#6C63FF] hover:neu-inset transition-all cursor-pointer"
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -152,45 +197,26 @@ function TradingViewChartComponent({
   const currentTfObj = TIMEFRAMES.find(t => t.value === selectedInterval) || TIMEFRAMES[2];
 
   return (
-    <div className="relative w-full h-full min-h-[560px] flex flex-col bg-[#0d0d0d] rounded-2xl overflow-hidden select-none border border-[#202020] shadow-2xl shadow-black/80">
-      {/* Clean Dusky Header: Symbol, Timeframes, Maximize */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#202020] bg-[#111111] z-20">
+    <div className="relative w-full h-full min-h-[560px] flex flex-col bg-[#E0E5EC] rounded-[32px] overflow-hidden select-none neu-raised border border-[#A0AEC0]/30">
+      {/* Clean Header: Symbol & Maximize (without time buttons) */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#A0AEC0]/30 bg-[#E0E5EC] z-20">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-base text-neutral-100 tracking-wide">{symbol}</span>
-            <span className="text-xs text-neutral-400 font-medium hidden sm:inline">{config.name}</span>
+            <span className="font-heading font-extrabold text-base text-[#2D3748] tracking-wide">{symbol}</span>
+            <span className="text-xs text-[#4A5568] font-medium hidden sm:inline font-body">{config.name}</span>
           </div>
         </div>
 
-        {/* Timeframes & Maximize */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center bg-[#080808] rounded-xl p-0.5 border border-[#222222]">
-            {TIMEFRAMES.map((tf) => (
-              <button
-                key={tf.value}
-                onClick={() => setSelectedInterval(tf.value)}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-mono font-medium rounded-lg transition-colors cursor-pointer",
-                  selectedInterval === tf.value
-                    ? "bg-[#242424] text-white font-bold border border-[#383838] shadow-sm"
-                    : "text-neutral-400 hover:text-white"
-                )}
-              >
-                {tf.label}
-              </button>
-            ))}
-          </div>
-
-          {onMaximizeToggle && (
-            <button
-              onClick={onMaximizeToggle}
-              title={isMaximized ? 'Minimize Chart' : 'Maximize Chart'}
-              className="p-1.5 rounded-xl bg-[#080808] hover:bg-[#1a1a1a] border border-[#222222] text-neutral-300 hover:text-white transition-colors cursor-pointer"
-            >
-              {isMaximized ? <Minimize2 className="h-4 w-4 text-neutral-300" /> : <Maximize2 className="h-4 w-4 text-neutral-300" />}
-            </button>
-          )}
-        </div>
+        {/* Maximize Toggle */}
+        {onMaximizeToggle && (
+          <button
+            onClick={onMaximizeToggle}
+            title={isMaximized ? 'Minimize Chart' : 'Maximize Chart'}
+            className="p-2 rounded-full neu-raised-sm hover:neu-inset-sm text-[#4A5568] hover:text-[#2D3748] transition-all cursor-pointer"
+          >
+            {isMaximized ? <Minimize2 className="h-4 w-4 text-[#2D3748]" /> : <Maximize2 className="h-4 w-4 text-[#2D3748]" />}
+          </button>
+        )}
       </div>
 
       {/* Main TradingView Viewport */}

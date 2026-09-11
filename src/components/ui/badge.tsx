@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-[16px] px-2.5 py-0.5 text-xs font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#6C63FF]/30",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground shadow",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        destructive: "border-transparent bg-destructive text-destructive-foreground shadow",
-        outline: "text-foreground",
-        bullish: "border-transparent bg-[hsl(var(--bullish))]/15 text-[hsl(var(--bullish))]",
-        bearish: "border-transparent bg-[hsl(var(--bearish))]/15 text-[hsl(var(--bearish))]",
-        warning: "border-transparent bg-[hsl(var(--warning))]/15 text-[hsl(var(--warning))]",
-        info: "border-transparent bg-[hsl(var(--info))]/15 text-[hsl(var(--info))]",
+        default: "border-transparent bg-[#6C63FF] text-white shadow-sm",
+        secondary: "border-transparent bg-[#E0E5EC] text-[#3D4852] shadow-[2px_2px_4px_rgba(163,177,198,0.5),-2px_-2px_4px_rgba(255,255,255,0.5)]",
+        destructive: "bg-[#FF6B6B]/15 text-[#FF6B6B] border border-[#FF6B6B]/30",
+        outline: "text-[#3D4852] border border-[#A0AEC0]/40 bg-[#E0E5EC]",
+        bullish: "bg-[#38B2AC]/15 text-[#38B2AC] border border-[#38B2AC]/30",
+        bearish: "bg-[#FF6B6B]/15 text-[#FF6B6B] border border-[#FF6B6B]/30",
+        warning: "bg-[#F6AD55]/15 text-[#F6AD55] border border-[#F6AD55]/30",
+        info: "bg-[#6C63FF]/15 text-[#6C63FF] border border-[#6C63FF]/30",
       },
     },
     defaultVariants: {

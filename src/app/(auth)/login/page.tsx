@@ -43,34 +43,34 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-zinc-100 shadow-xl">
-      <CardHeader className="space-y-2 text-center flex flex-col items-center">
-        <div className="h-12 w-12 rounded-2xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center shadow-lg mb-1">
-          <BiasXLogo size={28} />
+    <Card className="w-full max-w-md bg-[#E0E5EC] rounded-[32px] neu-raised border-0 text-[#3D4852] p-4 md:p-6">
+      <CardHeader className="space-y-3 text-center flex flex-col items-center">
+        <div className="h-16 w-16 rounded-[22px] bg-[#E0E5EC] neu-inset-sm flex items-center justify-center text-[#6C63FF] mb-1">
+          <BiasXLogo size={32} />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">BiasX</CardTitle>
-        <CardDescription className="text-zinc-400">
+        <CardTitle className="text-2xl font-heading font-extrabold tracking-tight text-[#3D4852]">BiasX</CardTitle>
+        <CardDescription className="text-sm text-[#6B7280] font-body">
           Sign in to your trading terminal
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-zinc-300">Email</Label>
+            <Label htmlFor="email" className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">Email</Label>
             <Input 
               id="email" 
               type="email" 
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-zinc-950 border-zinc-800 text-zinc-100 focus-visible:ring-emerald-500"
+              className="bg-[#E0E5EC] neu-inset-deep rounded-[20px] border-0 text-[#3D4852] placeholder:text-[#A0AEC0] focus-visible:ring-2 focus-visible:ring-[#6C63FF] py-3 text-sm font-medium"
               required
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-zinc-300">Password</Label>
-              <Link href="/forgot-password" className="text-xs text-emerald-500 hover:text-emerald-400">
+              <Label htmlFor="password" className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">Password</Label>
+              <Link href="/forgot-password" className="text-xs font-semibold text-[#6C63FF] hover:text-[#584edb]">
                 Forgot Password?
               </Link>
             </div>
@@ -79,24 +79,24 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-zinc-950 border-zinc-800 text-zinc-100 focus-visible:ring-emerald-500"
+              className="bg-[#E0E5EC] neu-inset-deep rounded-[20px] border-0 text-[#3D4852] placeholder:text-[#A0AEC0] focus-visible:ring-2 focus-visible:ring-[#6C63FF] py-3 text-sm font-medium"
               required
             />
           </div>
           {error && (
-            <div className="text-sm text-rose-500 font-medium">
+            <div className="text-xs text-[#FF6B6B] font-semibold bg-[#FF6B6B]/10 p-3 rounded-[16px] border border-[#FF6B6B]/20">
               {error}
             </div>
           )}
-          <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
+          <Button type="submit" className="w-full neu-btn-primary py-3 rounded-[22px] text-white font-semibold text-sm cursor-pointer" disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-zinc-400">
+      <CardFooter className="flex justify-center pt-2">
+        <p className="text-sm text-[#6B7280] font-body">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-emerald-500 hover:text-emerald-400 font-medium">
+          <Link href="/signup" className="text-[#6C63FF] hover:text-[#584edb] font-bold">
             Sign Up
           </Link>
         </p>

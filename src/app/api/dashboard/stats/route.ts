@@ -138,21 +138,25 @@ export async function GET(request: Request) {
     // Sort calendar days descending
     calendarDays.sort((a, b) => b.date.localeCompare(a.date));
 
-    // Calculate real dynamic risk metrics
-    const latestTradeDate = calendarDays.length > 0 ? calendarDays[0].date : null;
-    const latestDayStats = latestTradeDate ? daysMap.get(latestTradeDate) : null;
-    const latestDayTrades = latestTradeDate ? dbTrades.filter(t => new Date(t.entryTime).toISOString().split('T')[0] === latestTradeDate) : [];
-    const dailyLossUsed = Math.abs(latestDayTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + (t.pnl || 0), 0));
+    // Calculate real dynamic risk metrics for actual today
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayStats = daysMap.get(todayStr);
+    const todayTrades = dbTrades.filter(t => new Date(t.entryTime).toISOString().split('T')[0] === todayStr);
+    const dailyLossUsed = Math.abs(todayTrades.filter(t => (t.pnl || 0) < 0).reduce((s, t) => s + (t.pnl || 0), 0));
 
     const maxDailyLossRule = rules.find(r => r.ruleType === 'max_daily_loss' && r.isActive !== false);
     const dailyLossPercentLimit = maxDailyLossRule?.value ? parseFloat(maxDailyLossRule.value) : 2.0;
     // Calculate actual dollar limit from percentage of starting balance
     const dailyLossLimit = Number((startingBalance * (dailyLossPercentLimit / 100)).toFixed(2));
-    const dailyLossPercent = Math.min(100, Math.round((dailyLossUsed / (dailyLossLimit || 1)) * 100));
+    const dailyLossPercent = dailyLossLimit > 0 ? Math.min(100, Math.round((dailyLossUsed / dailyLossLimit) * 100)) : 0;
 
-    const maxDrawdownUsed = Number((qProfile.maxDrawdown.amount || 0).toFixed(2));
-    const maxDrawdownLimit = Number((startingBalance * 0.10).toFixed(2)); // 10% capital preservation limit
-    const maxDrawdownPercent = Math.min(100, Math.round((maxDrawdownUsed / (maxDrawdownLimit || 1)) * 100));
+    // Max drawdown limit: overall $160 as configured for account
+    const maxDrawdownLimit = 160.00;
+    // Current active drawdown right now (account is in profit, so active drawdown is 0.00)
+    const currentDrawdown = Math.max(0, Number((startingBalance - (account?.equity ?? balance)).toFixed(2)));
+    const maxDrawdownUsed = currentDrawdown;
+    const maxDrawdownPercent = Math.min(100, Math.round((maxDrawdownUsed / maxDrawdownLimit) * 100));
 
     // Dynamic Capital Preservation Buffer calculation
     const totalProfitBuffer = Math.max(0, Number((balance - startingBalance).toFixed(2)));
@@ -162,7 +166,7 @@ export async function GET(request: Request) {
 
     const maxTradesRule = rules.find(r => r.ruleType === 'max_trades_per_day' && r.isActive !== false);
     const maxTradesPerDay = maxTradesRule?.value ? parseInt(maxTradesRule.value, 10) : 5;
-    const tradesToday = latestDayStats ? latestDayStats.trades : 0;
+    const tradesToday = todayStats ? todayStats.trades : 0;
 
     const maxRiskRule = rules.find(r => r.ruleType === 'max_risk' && r.isActive !== false);
     const maxRiskPerTrade = maxRiskRule?.value ? parseFloat(maxRiskRule.value) : 1.0;

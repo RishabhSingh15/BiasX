@@ -93,29 +93,29 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       width: containerRef.current.clientWidth,
       height: height || containerRef.current.clientHeight || 500,
       layout: {
-        background: { type: ColorType.Solid, color: '#0B0E12' },
-        textColor: '#94A3B8',
+        background: { type: ColorType.Solid, color: '#E0E5EC' },
+        textColor: '#6B7280',
         fontSize: 11,
-        fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
+        fontFamily: "'DM Sans', 'SF Mono', monospace",
       },
       grid: {
-        vertLines: { color: '#161B22' },
-        horzLines: { color: '#161B22' },
+        vertLines: { color: 'rgba(163, 177, 198, 0.25)' },
+        horzLines: { color: 'rgba(163, 177, 198, 0.25)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: '#242A33', width: 1, style: 3, labelBackgroundColor: '#0E1116' },
-        horzLine: { color: '#242A33', width: 1, style: 3, labelBackgroundColor: '#0E1116' },
+        vertLine: { color: 'rgba(108, 99, 255, 0.4)', width: 1, style: 3, labelBackgroundColor: '#E0E5EC' },
+        horzLine: { color: 'rgba(108, 99, 255, 0.4)', width: 1, style: 3, labelBackgroundColor: '#E0E5EC' },
       },
       timeScale: {
-        borderColor: '#242A33',
+        borderColor: 'rgba(163, 177, 198, 0.35)',
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 5,
         barSpacing: 8,
       },
       rightPriceScale: {
-        borderColor: '#242A33',
+        borderColor: 'rgba(163, 177, 198, 0.35)',
         scaleMargins: { top: 0.1, bottom: 0.2 },
       },
     });
@@ -124,11 +124,11 @@ export const TradingChart: React.FC<TradingChartProps> = ({
 
     // Candlestick Series (v5 API)
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22C55E',
-      downColor: '#EF4444',
+      upColor: '#38B2AC',
+      downColor: '#FF6B6B',
       borderVisible: false,
-      wickUpColor: '#22C55E',
-      wickDownColor: '#EF4444',
+      wickUpColor: '#38B2AC',
+      wickDownColor: '#FF6B6B',
     });
 
     const candleData: CandlestickData<Time>[] = data.map((d) => ({
@@ -153,7 +153,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       const volumeData: HistogramData<Time>[] = data.map((d) => ({
         time: d.time,
         value: d.volume || 0,
-        color: d.close >= d.open ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+        color: d.close >= d.open ? 'rgba(56, 178, 172, 0.35)' : 'rgba(255, 107, 107, 0.35)',
       }));
       volumeSeries.setData(volumeData);
     }
@@ -161,8 +161,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     // SMA 20
     if (indicators.sma20 && data.length >= 20) {
       const sma20 = chart.addSeries(LineSeries, {
-        color: '#a1a1aa',
-        lineWidth: 1,
+        color: '#6C63FF',
+        lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
@@ -173,8 +173,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     // SMA 50
     if (indicators.sma50 && data.length >= 50) {
       const sma50 = chart.addSeries(LineSeries, {
-        color: '#64748B',
-        lineWidth: 1,
+        color: '#3D4852',
+        lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
@@ -185,8 +185,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     // EMA 20
     if (indicators.ema20 && data.length >= 20) {
       const ema20 = chart.addSeries(LineSeries, {
-        color: '#F59E0B',
-        lineWidth: 1,
+        color: '#F6AD55',
+        lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
@@ -198,8 +198,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     if (entryLine) {
       candleSeries.createPriceLine({
         price: entryLine,
-        color: '#e4e4e7',
-        lineWidth: 1,
+        color: '#6C63FF',
+        lineWidth: 2,
         lineStyle: 2,
         axisLabelVisible: true,
         title: 'Entry',
@@ -208,8 +208,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     if (stopLossLine) {
       candleSeries.createPriceLine({
         price: stopLossLine,
-        color: '#EF4444',
-        lineWidth: 1,
+        color: '#FF6B6B',
+        lineWidth: 2,
         lineStyle: 2,
         axisLabelVisible: true,
         title: 'SL',
@@ -218,8 +218,8 @@ export const TradingChart: React.FC<TradingChartProps> = ({
     if (takeProfitLine) {
       candleSeries.createPriceLine({
         price: takeProfitLine,
-        color: '#22C55E',
-        lineWidth: 1,
+        color: '#38B2AC',
+        lineWidth: 2,
         lineStyle: 2,
         axisLabelVisible: true,
         title: 'TP',

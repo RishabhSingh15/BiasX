@@ -126,6 +126,68 @@ export async function PUT(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, category, name, description, ruleType, value, unit, severity, isActive } = body;
+
+    if (!id && !ruleType) {
+      return NextResponse.json({ error: 'Rule ID or ruleType is required' }, { status: 400 });
+    }
+
+    let existingRule = id ? await prisma.tradingRule.findUnique({ where: { id } }) : null;
+
+    if (!existingRule && (ruleType || (id && id.startsWith('rule-')))) {
+      const targetType = ruleType || id.replace('rule-', '');
+      existingRule = await prisma.tradingRule.findFirst({
+        where: { userId, ruleType: targetType }
+      });
+    }
+
+    if (!existingRule) {
+      // Upsert: Create rule if it didn't exist yet
+      const newRule = await prisma.tradingRule.create({
+        data: {
+          userId,
+          category: category || 'risk',
+          name: name || (ruleType ? ruleType.replace(/_/g, ' ') : 'Rule'),
+          description: description || '',
+          ruleType: ruleType || (id && id.startsWith('rule-') ? id.replace('rule-', '') : 'custom_boolean'),
+          value: value !== undefined ? (typeof value === 'object' ? JSON.stringify(value) : String(value)) : '1',
+          unit: unit || '',
+          severity: severity || 'strict',
+          isActive: isActive !== undefined ? isActive : true
+        }
+      });
+      return NextResponse.json(newRule);
+    }
+
+    const updatedRule = await prisma.tradingRule.update({
+      where: { id: existingRule.id },
+      data: {
+        category: category !== undefined ? category : undefined,
+        name: name !== undefined ? name : undefined,
+        description: description !== undefined ? description : undefined,
+        ruleType: ruleType !== undefined ? ruleType : undefined,
+        value: value !== undefined ? (typeof value === 'object' ? JSON.stringify(value) : String(value)) : undefined,
+        unit: unit !== undefined ? unit : undefined,
+        severity: severity !== undefined ? severity : undefined,
+        isActive: isActive !== undefined ? isActive : undefined
+      }
+    });
+
+    return NextResponse.json(updatedRule);
+  } catch (error) {
+    console.error('Error patching rule:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const userId = await getUserId();
