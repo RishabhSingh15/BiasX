@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { getQuantitativeProfile } from '@/lib/engines/quantitative-engine';
 import { calculateBehaviorScore } from '@/lib/engines/scoring-engine';
 import { auditHistoricalTrades } from '@/lib/engines/audit-engine';
+import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    await ensureUserHasDefaultRules(userId);
 
     const [account, dbTrades, behaviorEvents, ruleViolations, rules] = await Promise.all([
       prisma.account.findFirst({ where: { userId } }),

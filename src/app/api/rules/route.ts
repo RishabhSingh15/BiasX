@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
+import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    await ensureUserHasDefaultRules(userId);
 
     const rules = await prisma.tradingRule.findMany({
       where: { userId },

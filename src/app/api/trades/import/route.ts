@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
+import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 import Papa from 'papaparse';
 import { parseMT5Report, getContractMultiplier, calculateDollarRisk, calculateRiskRewardRatio, inferAssetClass } from '@/lib/services/mt5-parser';
 
@@ -269,6 +270,9 @@ export async function PUT(request: Request) {
     const created = await prisma.trade.createMany({
       data: tradesData
     });
+
+    // Ensure user has default trading rules so behavioral engine can audit immediately
+    await ensureUserHasDefaultRules(userId);
 
     // Calculate total imported PnL and update account balance
     const totalPnl = tradesData.reduce((acc, t) => acc + (t.pnl || 0), 0);
