@@ -9,9 +9,6 @@ import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const serverStatsCache = new Map<string, { data: any; timestamp: number }>();
-const SERVER_CACHE_TTL_MS = 10000; // 10s per-user cache
-
 function formatDuration(seconds: number | null | undefined): string {
   if (!seconds || seconds <= 0) return '—';
   if (seconds < 60) return `${seconds}s`;
@@ -31,14 +28,6 @@ export async function GET(request: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const currentTime = Date.now();
-    const cached = serverStatsCache.get(userId);
-    if (cached && (currentTime - cached.timestamp < SERVER_CACHE_TTL_MS)) {
-      return NextResponse.json(cached.data, {
-        headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' }
-      });
     }
 
     let [account, dbTrades, behaviorEvents, rules] = await Promise.all([
@@ -281,10 +270,12 @@ export async function GET(request: Request) {
       recentTrades: hasTrades ? recentTrades : [],
     };
 
-    serverStatsCache.set(userId, { data: responsePayload, timestamp: Date.now() });
-
     return NextResponse.json(responsePayload, {
-      headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' }
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error);

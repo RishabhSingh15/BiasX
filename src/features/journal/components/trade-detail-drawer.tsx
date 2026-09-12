@@ -1,16 +1,18 @@
 'use client';
 
-import React from 'react';
-import { Layers, Shield, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layers, Shield, CheckCircle2, AlertCircle, Trash2, Loader2 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { TradeRecord, ActiveRuleItem } from '../types';
 
 interface TradeDetailDrawerProps {
   trade: TradeRecord;
   activeRulesList: ActiveRuleItem[];
+  onDeleteTrade?: (id: string | number) => void;
 }
 
-export function TradeDetailDrawer({ trade, activeRulesList }: TradeDetailDrawerProps) {
+export function TradeDetailDrawer({ trade, activeRulesList, onDeleteTrade }: TradeDetailDrawerProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
   return (
     <tr className="bg-[#E0E5EC] border-y border-[#A0AEC0]/25 animate-in fade-in duration-200">
       <td colSpan={6} className="p-0">
@@ -60,6 +62,35 @@ export function TradeDetailDrawer({ trade, activeRulesList }: TradeDetailDrawerP
                 }
               </span>
             </div>
+
+            {onDeleteTrade && (
+              <div className="pt-2 border-t border-[#A0AEC0]/20 flex justify-end">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Delete this trade record from your journal?')) {
+                      setIsDeleting(true);
+                      await onDeleteTrade(trade.id);
+                    }
+                  }}
+                  className="text-xs font-semibold text-[#FF6B6B] hover:text-[#e53e3e] flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-[#FF6B6B]/10 hover:bg-[#FF6B6B]/20 border border-[#FF6B6B]/30 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Trade</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Col 2: Rule Breaches & Behavioral Diagnostic */}

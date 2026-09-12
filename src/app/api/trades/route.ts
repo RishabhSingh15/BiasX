@@ -74,6 +74,12 @@ export async function GET(request: Request) {
         limit,
         totalPages: Math.ceil(total / limit)
       }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error) {
     console.error('Error fetching trades:', error);
@@ -89,6 +95,41 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tradeId = searchParams.get('id');
+
+    if (tradeId) {
+      // 1. Delete single trade & associated events
+      await prisma.behaviorEvent.deleteMany({ where: { tradeId } });
+      await prisma.ruleViolation.deleteMany({ where: { tradeId } });
+      await prisma.tradeAnalysis.deleteMany({ where: { tradeId } });
+      const deleted = await prisma.trade.deleteMany({ where: { id: tradeId, userId } });
+
+      // Recalculate account balance from remaining trades
+      const remainingTrades = await prisma.trade.findMany({
+        where: { userId },
+        select: { pnl: true }
+      });
+      const totalPnl = remainingTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+      const newBalance = Number((2000 + totalPnl).toFixed(2));
+      await prisma.account.updateMany({
+        where: { userId },
+        data: {
+          balance: newBalance,
+          equity: newBalance,
+        }
+      });
+
+      return NextResponse.json({ success: true, count: deleted.count, newBalance }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      });
+    }
+
+    // 2. Clear all trades
     await prisma.behaviorEvent.deleteMany({ where: { userId } });
     await prisma.ruleViolation.deleteMany({ where: { userId } });
     await prisma.tradeAnalysis.deleteMany({ where: { userId } });
@@ -102,7 +143,13 @@ export async function DELETE(request: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, count: deleted.count });
+    return NextResponse.json({ success: true, count: deleted.count, newBalance: 2000 }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error('Error clearing trades:', error);
     return NextResponse.json({ error: 'Failed to clear trades' }, { status: 500 });

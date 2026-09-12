@@ -6,6 +6,7 @@ import { TradeRecord, ActiveRuleItem } from '../types';
 import { JournalMetricsBar } from './journal-metrics-bar';
 import { JournalFilters } from './journal-filters';
 import { TradeTable } from './trade-table';
+import { invalidateDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 function formatDuration(seconds?: number): string {
   if (!seconds || seconds <= 0) return '—';
@@ -26,10 +27,10 @@ export function JournalView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRulesList, setActiveRulesList] = useState<ActiveRuleItem[]>([]);
 
-  useEffect(() => {
+  const loadJournalData = React.useCallback(() => {
     Promise.all([
-      fetch('/api/trades?limit=500', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/rules', { cache: 'no-store' }).then(r => r.json()).catch(() => [])
+      fetch(`/api/trades?limit=500&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+      fetch(`/api/rules?_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => [])
     ])
       .then(([tradesRes, rulesRes]) => {
         const activeRules = Array.isArray(rulesRes) ? rulesRes.filter((r: any) => r.isActive) : [];
@@ -91,6 +92,8 @@ export function JournalView() {
             };
           });
           setTrades(mapped);
+        } else {
+          setTrades([]);
         }
         setLoading(false);
       })
@@ -99,6 +102,20 @@ export function JournalView() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadJournalData();
+  }, [loadJournalData]);
+
+  useEffect(() => {
+    const onMutate = () => loadJournalData();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadJournalData]);
 
   const filteredTrades = trades.filter(t => {
     if (selectedSymbolFilter !== 'ALL' && t.symbol !== selectedSymbolFilter) return false;
@@ -119,6 +136,18 @@ export function JournalView() {
 
   const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol).filter(Boolean)));
   const availableSymbols = ['ALL', ...uniqueSymbols];
+
+  const handleDeleteTrade = async (id: string | number) => {
+    try {
+      const res = await fetch(`/api/trades?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setTrades(prev => prev.filter(t => t.id !== id));
+        invalidateDashboardStats();
+      }
+    } catch (e) {
+      console.error('Failed to delete trade:', e);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
@@ -170,6 +199,7 @@ export function JournalView() {
         loading={loading}
         activeRulesList={activeRulesList}
         allTradesCount={trades.length}
+        onDeleteTrade={handleDeleteTrade}
       />
     </div>
   );

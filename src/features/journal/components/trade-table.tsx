@@ -12,6 +12,7 @@ interface TradeTableProps {
   loading: boolean;
   activeRulesList: ActiveRuleItem[];
   allTradesCount: number;
+  onDeleteTrade?: (id: string | number) => void;
 }
 
 export function TradeTable({
@@ -19,6 +20,7 @@ export function TradeTable({
   loading,
   activeRulesList,
   allTradesCount,
+  onDeleteTrade,
 }: TradeTableProps) {
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -155,7 +157,11 @@ export function TradeTable({
 
                   {/* Expanded Detail Drawer */}
                   {expandedId === trade.id && (
-                    <TradeDetailDrawer trade={trade} activeRulesList={activeRulesList} />
+                    <TradeDetailDrawer 
+                      trade={trade} 
+                      activeRulesList={activeRulesList} 
+                      onDeleteTrade={onDeleteTrade}
+                    />
                   )}
                 </React.Fragment>
               ))

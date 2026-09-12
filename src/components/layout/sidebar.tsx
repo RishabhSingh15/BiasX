@@ -36,8 +36,8 @@ export function Sidebar() {
   const { sidebarOpen, toggleSidebar } = useAppStore();
   const [accountInfo, setAccountInfo] = useState<{ name: string; balance: number } | null>(null);
 
-  useEffect(() => {
-    fetchDashboardStats()
+  const refreshAccount = React.useCallback(() => {
+    fetchDashboardStats(true)
       .then(d => {
         if (d?.account) {
           setAccountInfo({
@@ -47,7 +47,21 @@ export function Sidebar() {
         }
       })
       .catch(() => {});
-  }, [pathname]);
+  }, []);
+
+  useEffect(() => {
+    refreshAccount();
+  }, [pathname, refreshAccount]);
+
+  useEffect(() => {
+    const onMutate = () => refreshAccount();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [refreshAccount]);
 
   return (
     <aside 

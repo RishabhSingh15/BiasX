@@ -42,11 +42,26 @@ export function AccountsView() {
 
   // Fetch live account data
   const [accountData, setAccountData] = useState<any>(null);
-  useEffect(() => {
-    fetchDashboardStats()
+
+  const loadAccountData = React.useCallback(() => {
+    fetchDashboardStats(true)
       .then(d => setAccountData(d))
       .catch(() => {});
-  }, [importMode]);
+  }, []);
+
+  useEffect(() => {
+    loadAccountData();
+  }, [importMode, loadAccountData]);
+
+  useEffect(() => {
+    const onMutate = () => loadAccountData();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadAccountData]);
 
   const handleClearHistory = async () => {
     const isConfirmed = await confirm({
@@ -63,10 +78,8 @@ export function AccountsView() {
       const res = await fetch('/api/trades', { method: 'DELETE' });
       if (res.ok) {
         invalidateDashboardStats();
+        loadAccountData();
         success('Trade History Reset', 'All previous trade history has been cleared. Account reset to $2,000 baseline.');
-        setTimeout(() => {
-          window.location.reload();
-        }, 1200);
       } else {
         error('Reset Failed', 'Could not clear trade history. Please try again.');
       }
@@ -148,6 +161,7 @@ export function AccountsView() {
         totalPnl: data.totalPnl ?? 0,
       });
       invalidateDashboardStats();
+      loadAccountData();
       setImportMode('success');
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to import trades');

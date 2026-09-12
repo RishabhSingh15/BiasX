@@ -7,6 +7,9 @@ import { ensureUserHasDefaultRules } from '@/lib/services/default-rules';
 import Papa from 'papaparse';
 import { parseMT5Report, getContractMultiplier, calculateDollarRisk, calculateRiskRewardRatio, inferAssetClass } from '@/lib/services/mt5-parser';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const userId = await getEffectiveUserId();

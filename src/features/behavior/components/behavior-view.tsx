@@ -24,12 +24,26 @@ export function BehaviorView() {
   const [stats, setStats] = useState<DashboardStatsWithBehavior | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardStats()
+  const loadBehavior = React.useCallback(() => {
+    fetchDashboardStats(true)
       .then(d => setStats(d))
       .catch(e => console.warn('Behavior fetch error:', e))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadBehavior();
+  }, [loadBehavior]);
+
+  useEffect(() => {
+    const onMutate = () => loadBehavior();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadBehavior]);
 
   if (loading) {
     return (

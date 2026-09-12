@@ -4,6 +4,9 @@ import { auth, getEffectiveUserId } from '@/lib/auth';
 // @ts-ignore
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: Request) {
   try {
     const userId = await getEffectiveUserId();

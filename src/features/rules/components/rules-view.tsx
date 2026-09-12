@@ -23,6 +23,7 @@ import { RULE_PRESETS } from '../constants/rule-presets';
 import { RuleCard } from './rule-card';
 import { AddRuleDialog } from './add-rule-dialog';
 import { useNotification } from '@/components/ui/notification';
+import { invalidateDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 const CATEGORIES: CategoryInfo[] = [
   {
@@ -64,8 +65,8 @@ export function RulesView() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/rules', { cache: 'no-store' })
+  const loadRules = React.useCallback(() => {
+    fetch(`/api/rules?_t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
@@ -95,6 +96,20 @@ export function RulesView() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    loadRules();
+  }, [loadRules]);
+
+  useEffect(() => {
+    const onMutate = () => loadRules();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadRules]);
+
   const handleToggleActive = async (id: string, active: boolean) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, isActive: active } : r));
     try {
@@ -103,6 +118,7 @@ export function RulesView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, isActive: active }),
       });
+      invalidateDashboardStats();
       info(active ? 'Rule Enabled' : 'Rule Paused', `Trading rule guardrail is now ${active ? 'active' : 'paused'}.`, 2200);
     } catch (e) {
       console.warn('Failed to update rule status:', e);
@@ -117,6 +133,7 @@ export function RulesView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, value: val }),
       });
+      invalidateDashboardStats();
     } catch (e) {
       console.warn('Failed to update rule value:', e);
     }
@@ -138,6 +155,7 @@ export function RulesView() {
     try {
       const res = await fetch(`/api/rules?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete rule from database');
+      invalidateDashboardStats();
       success('Rule Deleted', `"${ruleName}" has been removed from your guardrails.`);
     } catch (e) {
       console.warn('Failed to delete rule:', e);
@@ -157,6 +175,7 @@ export function RulesView() {
 
   const handleRuleAdded = (newRule: Rule) => {
     setRules(prev => [newRule, ...prev]);
+    invalidateDashboardStats();
     success('Rule Activated', `"${newRule.name}" has been added to your live guardrails.`);
   };
 

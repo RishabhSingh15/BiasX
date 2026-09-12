@@ -11,7 +11,7 @@ import { SYMBOL_LIST } from '../constants/symbols';
 import { useOrderCalculations } from '../hooks/use-order-calculations';
 import { OrderPanel } from './order-panel';
 import { OrderAnalysisModal } from './order-analysis-modal';
-import { fetchDashboardStats } from '@/lib/services/dashboard-stats-cache';
+import { fetchDashboardStats, invalidateDashboardStats } from '@/lib/services/dashboard-stats-cache';
 
 // Dynamically import TradingView chart to avoid SSR issues
 const TradingViewChart = dynamic(
@@ -63,21 +63,15 @@ export function TerminalView() {
   const [activeRules, setActiveRules] = useState<any[]>([]);
 
   // Load user rules to dynamically configure risk limits and checks
-  useEffect(() => {
-    fetch('/api/rules', { cache: 'no-store' })
+  const loadRulesAndBalance = useCallback(() => {
+    fetch(`/api/rules?_t=${Date.now()}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d)) setActiveRules(d);
       })
       .catch(() => {});
-  }, []);
 
-  const maxRiskRule = activeRules.find((r: any) => r.isActive && (r.ruleType === 'max_risk' || r.ruleType === 'max_risk_per_trade'));
-  const maxRiskLimit = maxRiskRule?.value ? parseFloat(maxRiskRule.value) : 1.0;
-
-  // Synchronize with real account balance from API
-  useEffect(() => {
-    fetchDashboardStats()
+    fetchDashboardStats(true)
       .then(d => {
         if (d?.account?.balance) {
           setAccountBalance(d.account.balance);
@@ -85,6 +79,23 @@ export function TerminalView() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadRulesAndBalance();
+  }, [loadRulesAndBalance]);
+
+  useEffect(() => {
+    const onMutate = () => loadRulesAndBalance();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadRulesAndBalance]);
+
+  const maxRiskRule = activeRules.find((r: any) => r.isActive && (r.ruleType === 'max_risk' || r.ruleType === 'max_risk_per_trade'));
+  const maxRiskLimit = maxRiskRule?.value ? parseFloat(maxRiskRule.value) : 1.0;
 
   // Recalculate default SL/TP when symbol or direction changes
   const applyDefaultSlTp = useCallback((basePrice: number, dir: TradeDirection, dec: number) => {
@@ -342,6 +353,7 @@ export function TerminalView() {
         if (data.newBalance !== undefined) {
           setAccountBalance(data.newBalance);
         }
+        invalidateDashboardStats();
         setOrderNotification({
           type: 'success',
           title: decision === 'overridden' ? 'Rule Override Position Logged' : 'Active Position Logged',

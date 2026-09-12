@@ -13,8 +13,8 @@ export function DashboardView() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [rawCalendarDays, setRawCalendarDays] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchDashboardStats()
+  const loadDashboardData = React.useCallback(() => {
+    fetchDashboardStats(true)
       .then(res => {
         if (res.account && res.stats) {
           const calDays = res.calendarDays || [];
@@ -63,45 +63,22 @@ export function DashboardView() {
       })
       .catch(err => {
         console.warn('Dashboard fetch fallback:', err);
-        setData({
-          balance: 2000.00,
-          equity: 2000.00,
-          startingBalance: 2000.00,
-          todaysPnl: 0,
-          totalTrades: 0,
-          winRate: 0,
-          profitFactor: 0,
-          dailyPnl: [],
-          behaviorScore: {
-            total: 100,
-            status: 'Clean Slate',
-            weeklyChange: 0,
-            breakdown: {
-              ruleAdherence: 100,
-              riskDiscipline: 100,
-              fomoControl: 100,
-              revengeTrading: 100,
-              overtrading: 100,
-              consistency: 100,
-            }
-          },
-          riskMetrics: {
-            dailyLossUsed: 0.00,
-            dailyLossLimit: 40.00,
-            dailyLossPercent: 0,
-            maxDrawdownUsed: 0.00,
-            maxDrawdownLimit: 160.00,
-            maxDrawdownPercent: 0,
-            tradesToday: 0,
-            maxTradesPerDay: 5,
-            capitalAtRiskPercent: 0.75,
-            maxRiskPerTrade: 1.0,
-            ruleViolations: 0,
-          },
-          recentTrades: []
-        });
       });
   }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  useEffect(() => {
+    const onMutate = () => loadDashboardData();
+    window.addEventListener('biasx:data-mutated', onMutate);
+    window.addEventListener('focus', onMutate);
+    return () => {
+      window.removeEventListener('biasx:data-mutated', onMutate);
+      window.removeEventListener('focus', onMutate);
+    };
+  }, [loadDashboardData]);
 
   if (!data) {
     return (
